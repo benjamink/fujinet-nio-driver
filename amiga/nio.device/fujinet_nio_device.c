@@ -83,7 +83,9 @@ struct ExecBase *SysBase;
 extern struct DosLibrary *DOSBase;
 static struct fujinet_nio_device_base *directory_worker_base;
 #elif !defined(FUJINET_NIO_NATIVE_TEST)
-struct DosLibrary *DOSBase;
+/* Explicitly NULL: a tentative definition links to libnix's auto-open
+ * DOSBase, -1 until startup code that a -nostartfiles device never runs. */
+struct DosLibrary *DOSBase = NULL;
 static struct fujinet_nio_device_base *serial_worker_base;
 
 #endif
