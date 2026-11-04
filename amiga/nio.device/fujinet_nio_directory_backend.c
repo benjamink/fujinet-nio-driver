@@ -48,7 +48,8 @@ const char fujinet_nio_native_test_ver[] =
 
 #ifdef __AMIGA__
 extern struct ExecBase *SysBase;
-struct DosLibrary *DOSBase;
+/* Explicitly NULL: a tentative definition links to libnix's auto-open -1. */
+struct DosLibrary *DOSBase = NULL;
 #endif
 
 static fn_packet_backend_t guard;
