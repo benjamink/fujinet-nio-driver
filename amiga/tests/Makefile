@@ -134,7 +134,8 @@ PACKET_SOURCES := test_fujinet_nio_packet_backend.c \
 	$(DRIVER_ROOT)/channels/rs232/fujinet_nio_client.c \
 	$(DRIVER_ROOT)/../common/fujinet_disk_retry.c \
 	$(LIB_ROOT)/src/platform/amiga/fn_transport.c \
-	$(addprefix $(LIB_ROOT)/src/common/,fn_disk.c fn_raw.c fn_init.c fn_state.c \
+	$(wildcard $(LIB_ROOT)/src/common/fn_disk_*.c) \
+	$(addprefix $(LIB_ROOT)/src/common/,fn_raw.c fn_init.c fn_state.c \
 	fn_packet_header.c fn_packet_parse_common.c fn_packet_checksum.c \
 	fn_packet_checksum_packet.c fn_checksum_fold.c)
 PACKET_HEADERS := $(wildcard stubs/exec/*.h stubs/proto/*.h stubs/clib/*.h stubs/dos/*.h) \

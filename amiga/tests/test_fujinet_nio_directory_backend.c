@@ -1,5 +1,8 @@
 #define _POSIX_C_SOURCE 200809L
 #define _DEFAULT_SOURCE
+/* macOS hides mkdtemp() under a strict _POSIX_C_SOURCE; _DEFAULT_SOURCE is
+   glibc's equivalent and does nothing there. */
+#define _DARWIN_C_SOURCE
 
 #include <errno.h>
 #include <stdio.h>
