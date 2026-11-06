@@ -378,19 +378,27 @@ static void expect_call(enum path path, uint8_t tag, uint8_t result, unsigned co
               memcmp(request_log[i], request_log[start], request_lengths[i]) == 0);
 }
 
-static unsigned retries(enum path path) { return path == RAW ? 2 : 3; }
+static unsigned retries(enum path path) { return path == RAW ? 1 : 3; }
 static void test_before_send(enum path path)
 {
     reset_case(); peer.fault = REJECT; peer.reject_count = 1;
-    expect_call(path, 0x21, FN_OK, 2);
-    CHECK(peer.transfers == 2 && peer.transmissions == 1 && peer.effects == 1);
-    CHECK(attempt_sends[0] == 0 && attempt_effects[0] == 0 && attempt_sends[1] == 1);
-    CHECK(backend_entries == 2 && peer.remote_replies == 1 && !guard.quarantined);
+    expect_call(path, 0x21, path == RAW ? FN_ERR_TRANSPORT : FN_OK, path == RAW ? 1 : 2);
+    CHECK(peer.transfers == (path == RAW ? 1U : 2U));
+    CHECK(peer.transmissions == (path == RAW ? 0U : 1U));
+    CHECK(peer.effects == (path == RAW ? 0U : 1U));
+    CHECK(attempt_sends[0] == 0 && attempt_effects[0] == 0);
+    if (path != RAW) CHECK(attempt_sends[1] == 1);
+    CHECK(backend_entries == (path == RAW ? 1U : 2U));
+    CHECK(peer.remote_replies == (path == RAW ? 0U : 1U) && !guard.quarantined);
     reset_case(); peer.open_failures = 1;
-    expect_call(path, 0x22, FN_OK, 2);
-    CHECK(peer.opens == 2 && backend_entries == 1 && peer.transfers == 1);
-    CHECK(attempt_sends[0] == 0 && attempt_effects[0] == 0 && attempt_sends[1] == 1);
-    CHECK(peer.transmissions == 1 && peer.effects == 1);
+    expect_call(path, 0x22, path == RAW ? FN_ERR_TRANSPORT : FN_OK, path == RAW ? 1 : 2);
+    CHECK(peer.opens == (path == RAW ? 1U : 2U));
+    CHECK(backend_entries == (path == RAW ? 0U : 1U));
+    CHECK(peer.transfers == (path == RAW ? 0U : 1U));
+    CHECK(attempt_sends[0] == 0 && attempt_effects[0] == 0);
+    if (path != RAW) CHECK(attempt_sends[1] == 1);
+    CHECK(peer.transmissions == (path == RAW ? 0U : 1U));
+    CHECK(peer.effects == (path == RAW ? 0U : 1U));
     reset_case(); peer.fault = UNAVAILABLE;
     expect_call(path, 0x23, FN_ERR_TRANSPORT, retries(path));
     CHECK(peer.transfers == retries(path) && peer.transmissions == 0 && peer.effects == 0);
@@ -448,21 +456,17 @@ static void test_fault_and_recovery(enum path path, enum fault fault)
 static void test_aborts(enum path path)
 {
     reset_case(); abort_queued = 1;
-    /* raw retries ABORTED once, disk does not. Reject its later attempt to
-     * isolate the fact that the aborted queued IORequest transmitted nothing. */
+    /* Aborted requests are never replayed. */
     peer.fault = UNAVAILABLE;
-    expect_call(path, 0x11, path == RAW ? FN_ERR_TRANSPORT : FN_ERR_ABORTED,
-                path == RAW ? 2 : 1);
+    expect_call(path, 0x11, FN_ERR_ABORTED, 1);
     CHECK(peer.transmissions == 0 && peer.effects == 0);
-    CHECK(backend_entries == (path == RAW ? 1U : 0U));
+    CHECK(backend_entries == 0);
     reset_case(); abort_active = 1;
-    expect_call(path, 0x10, path == RAW ? FN_OK : FN_ERR_ABORTED,
-                path == RAW ? 2 : 1);
-    CHECK(peer.transmissions == (path == RAW ? 2U : 1U));
+    expect_call(path, 0x10, FN_ERR_ABORTED, 1);
+    CHECK(peer.transmissions == 1);
     CHECK(peer.effects == peer.transmissions && !guard.quarantined);
     reset_case(); peer.fault = DELIVERY; abort_active = 1;
-    expect_call(path, 0x12, path == RAW ? FN_ERR_TRANSPORT : FN_ERR_ABORTED,
-                path == RAW ? 2 : 1);
+    expect_call(path, 0x12, FN_ERR_ABORTED, 1);
     CHECK(peer.transmissions == 1 && peer.pending == 1 && peer.effects == 0);
     peer_finish_late(); CHECK(peer.effects == 1);
     CHECK(fn_packet_backend_reset(&guard) == FN_OK);
@@ -721,8 +725,8 @@ static void test_known_completion_policy(void)
     reset_case(); memset(output, 0xBA, sizeof(output));
     CHECK(fn_raw_call(FN_DEVICE_DISK, 4, payload, sizeof(payload), output + 1,
                       10, &response) == FN_ERR_IO);
-    CHECK(response.payload_length == 0 && attempts == 2 && replies == 2);
-    CHECK(peer.transmissions == 2 && peer.effects == 2 && peer.remote_replies == 2);
+    CHECK(response.payload_length == 0 && attempts == 1 && replies == 1);
+    CHECK(peer.transmissions == 1 && peer.effects == 1 && peer.remote_replies == 1);
     CHECK(peer.max_pending == 1 && !guard.quarantined);
     CHECK(memcmp(scratch + 1, canonical, sizeof(canonical)) == 0);
     for (i = 0; i < sizeof(output); ++i) CHECK(output[i] == 0xBA);
