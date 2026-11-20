@@ -26,6 +26,7 @@
 
 #define DEVICE_NAME FUJINET_SERIAL_DEVICE_NAME
 #define DEVICE_VERSION 0
+#define DEVICE_REVISION 12
 #define DEVICE_BAUD_DEFAULT 19200UL
 /* SETPARAMS only: RBF is masked while waiting TSRE. Not used for CMD_WRITE. */
 #define TSRE_WAIT_SPINS 2000000UL
@@ -165,7 +166,7 @@ typedef char fn_tbe_off_accepted_ok[
 
 static const char device_name[] = DEVICE_NAME;
 static const char device_id[] =
-    "$VER: " DEVICE_NAME " 0.11 (10.9.2026) \xa9 2026 Mark Fisher\r\n";
+    "$VER: " DEVICE_NAME " 0.12 (20.11.2026) \xa9 2026 Mark Fisher\r\n";
 
 static int pal_display(void)
 {
@@ -797,7 +798,7 @@ static struct fujinet_serial_base *device_init(
     base->device.dd_Library.lib_Node.ln_Name = (char *)device_name;
     base->device.dd_Library.lib_Flags = LIBF_SUMUSED | LIBF_CHANGED;
     base->device.dd_Library.lib_Version = DEVICE_VERSION;
-    base->device.dd_Library.lib_Revision = 0;
+    base->device.dd_Library.lib_Revision = DEVICE_REVISION;
     base->device.dd_Library.lib_IdString = (APTR)device_id;
     base->segment_list = segment_list;
     base->baud = DEVICE_BAUD_DEFAULT;
@@ -889,6 +890,10 @@ static void device_begin_io(
 {
     struct IOExtSer *req = (struct IOExtSer *)request;
 
+    /* Exec does not reset this for us. A reused NT_REPLYMSG would make
+     * CheckIO/WaitIO report completion while our interrupt still owns it. */
+    request->io_Message.mn_Node.ln_Type = NT_MESSAGE;
+    request->io_Error = 0;
     if (!base->port_claimed || !base->bits_claimed || base->closing) {
         finish(req, IOERR_OPENFAIL);
         return;

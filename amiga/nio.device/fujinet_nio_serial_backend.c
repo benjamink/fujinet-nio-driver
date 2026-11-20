@@ -10,6 +10,7 @@
 #include "fujinet_nio_backend.h"
 #include "fujinet_nio_serial_channel.h"
 #include "fujinet_nio_serial_config.h"
+#include "fujinet_nio_serial_wait.h"
 #include "fujinet_nio_session_diag.h"
 #include "fujinet_serial_device.h"
 #include "fujinet-nio.h"
@@ -134,24 +135,13 @@ static uint8_t serial_cmd_read(APTR buf, ULONG length, uint16_t timeout_ms,
 
     serial_mask = 1UL << serial_port->mp_SigBit;
     timer_mask = 1UL << timer_port->mp_SigBit;
-    Wait(serial_mask | timer_mask);
-
-    if (CheckIO((struct IORequest *)serial_req) == NULL) {
-        AbortIO((struct IORequest *)serial_req);
-        WaitIO((struct IORequest *)serial_req);
-        WaitIO((struct IORequest *)timer_req);
+    if (fujinet_serial_wait_read((struct IORequest *)serial_req,
+                                 (struct IORequest *)timer_req,
+                                 serial_mask | timer_mask)) {
         serial_failure_detail = FUJINET_NIO_DETAIL_SERIAL_READ;
         serial_failure_io_error = 0;
         serial_failure_status = 0;
         return FN_ERR_TIMEOUT;
-    }
-
-    WaitIO((struct IORequest *)serial_req);
-    if (CheckIO((struct IORequest *)timer_req) == NULL) {
-        AbortIO((struct IORequest *)timer_req);
-        WaitIO((struct IORequest *)timer_req);
-    } else {
-        WaitIO((struct IORequest *)timer_req);
     }
 
     if (serial_req->IOSer.io_Error != 0) {

@@ -46,6 +46,7 @@ NIO_SERIAL := $(BUILD_DIR)/fujinet-nio-serial
 NIO_OBJECTS := $(BUILD_DIR)/nio.device/fujinet_nio_device.o \
 	$(BUILD_DIR)/nio.device/fujinet_nio_legacy_worker.o \
 	$(BUILD_DIR)/nio.device/fujinet_nio_serial_backend.o \
+	$(BUILD_DIR)/nio.device/fujinet_nio_serial_wait.o \
 	$(BUILD_DIR)/common/fujinet_io_queue.o \
 	$(BUILD_DIR)/nio-framing/fn_session.o \
 	$(BUILD_DIR)/nio-framing/fn_slip.o
@@ -171,16 +172,17 @@ $(BUILD_DIR)/serial.device/fujinet_serial_rbf.o: serial.device/fujinet_serial_rb
 	@mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 $(BUILD_DIR)/serial.device/fujinet_paula_uart.o: include/fujinet_paula_uart.h
+$(BUILD_DIR)/nio.device/fujinet_nio_serial_backend.o $(BUILD_DIR)/nio.device/fujinet_nio_serial_wait.o: include/fujinet_nio_serial_wait.h
 $(BUILD_DIR)/channels/rs232/fujinet_nio_client.o: include/fujinet_nio_endian.h
 
-$(NIO_EXCHANGE): tools/fujinet_nio_exchange_legacy_worker.S tools/fujinet_nio_exchange_disk_adapter.c tools/fujinet_nio_exchange_disk_adapter.h tools/fujinet_nio_exchange_disk.c tools/fujinet_nio_exchange_disk.h tools/fujinet-nio-exchange.c tools/fujinet_nio_exchange_opts.c \
+$(NIO_EXCHANGE): tools/fujinet_serial_request_probe.c tools/fujinet_nio_exchange_legacy_worker.S tools/fujinet_nio_exchange_disk_adapter.c tools/fujinet_nio_exchange_disk_adapter.h tools/fujinet_nio_exchange_disk.c tools/fujinet_nio_exchange_disk.h tools/fujinet-nio-exchange.c tools/fujinet_nio_exchange_opts.c \
 		tools/fujinet_nio_exchange_opts.h include/fujinet_nio_device.h \
 		include/fujinet_disk_device.h include/fujinet_nio_backend.h \
 		include/fujinet_nio_endian.h include/fujinet_nio_serial_config.h \
 		$(LIBRARY)
 	@mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) $(NIO_EXCHANGE_PROFILE_CPPFLAGS) $(CFLAGS) $(KICK13_CRT) \
-		tools/fujinet-nio-exchange.c tools/fujinet_nio_exchange_legacy_worker.S tools/fujinet_nio_exchange_opts.c tools/fujinet_nio_exchange_disk.c tools/fujinet_nio_exchange_disk_adapter.c \
+		tools/fujinet_serial_request_probe.c tools/fujinet-nio-exchange.c tools/fujinet_nio_exchange_legacy_worker.S tools/fujinet_nio_exchange_opts.c tools/fujinet_nio_exchange_disk.c tools/fujinet_nio_exchange_disk_adapter.c \
 		$(LIBRARY) -lamiga -o $@
 
 $(NIO_BAUD): tools/fujinet-nio-baud.c include/fujinet_nio_device.h \

@@ -17,6 +17,7 @@ EXCHANGE_DISK_TEST := $(BUILD_DIR)/test_fujinet_nio_exchange_disk
 EXCHANGE_OPTS_TEST := $(BUILD_DIR)/test_fujinet_nio_exchange_opts
 PAULA_UART_TEST := $(BUILD_DIR)/test_fujinet_paula_uart
 LIFECYCLE_TEST := $(BUILD_DIR)/test_fujinet_serial_lifecycle
+SERIAL_WAIT_TEST := $(BUILD_DIR)/test_fujinet_nio_serial_wait
 EXEC_STUB_HEADERS := $(wildcard stubs/exec/*.h stubs/proto/*.h)
 LIBRARY := $(LIB_ROOT)/build/fujinet-nio-linux.a
 
@@ -25,7 +26,7 @@ LIBRARY := $(LIB_ROOT)/build/fujinet-nio-linux.a
 all: $(TEST) $(RETRY_TEST) $(QUEUE_TEST) $(EXEC_BOUNDARY_TEST) $(RESIDENT_TEST) \
 	$(NIO_DEVICE_TEST) $(PACKET_BACKEND_TEST) $(DIRECTORY_BACKEND_TEST) \
 	$(SERIAL_CHANNEL_TEST) $(EXCHANGE_OPTS_TEST) $(EXCHANGE_DISK_TEST) $(EXCHANGE_ADAPTER_TEST) \
-	$(PAULA_UART_TEST) $(LIFECYCLE_TEST)
+	$(PAULA_UART_TEST) $(LIFECYCLE_TEST) $(SERIAL_WAIT_TEST)
 
 $(TEST): test_fujinet_disk_driver.c \
 		$(DRIVER_ROOT)/common/fujinet_disk_driver.c \
@@ -104,10 +105,16 @@ $(LIFECYCLE_TEST): test_fujinet_serial_lifecycle.c \
 		$(DRIVER_ROOT)/serial.device/fujinet_serial_lifecycle.c \
 		$(DRIVER_ROOT)/serial.device/fujinet_paula_uart.c -o $@
 
+$(SERIAL_WAIT_TEST): test_fujinet_nio_serial_wait.c \
+		$(DRIVER_ROOT)/nio.device/fujinet_nio_serial_wait.c \
+		$(DRIVER_ROOT)/include/fujinet_nio_serial_wait.h $(EXEC_STUB_HEADERS)
+	@mkdir -p $(BUILD_DIR)
+	$(CC) $(CFLAGS) -Istubs -I$(DRIVER_ROOT)/include $(filter %.c,$^) -o $@
+
 test: $(TEST) $(RETRY_TEST) $(QUEUE_TEST) $(EXEC_BOUNDARY_TEST) $(RESIDENT_TEST) \
 		$(NIO_DEVICE_TEST) $(PACKET_BACKEND_TEST) $(DIRECTORY_BACKEND_TEST) \
 		$(SERIAL_CHANNEL_TEST) $(EXCHANGE_OPTS_TEST) $(EXCHANGE_DISK_TEST) $(EXCHANGE_ADAPTER_TEST) \
-		$(PAULA_UART_TEST) $(LIFECYCLE_TEST)
+		$(PAULA_UART_TEST) $(LIFECYCLE_TEST) $(SERIAL_WAIT_TEST)
 	./$(TEST)
 	./$(RETRY_TEST)
 	./$(QUEUE_TEST)
@@ -122,6 +129,7 @@ test: $(TEST) $(RETRY_TEST) $(QUEUE_TEST) $(EXEC_BOUNDARY_TEST) $(RESIDENT_TEST)
 	./$(EXCHANGE_ADAPTER_TEST)
 	./$(PAULA_UART_TEST)
 	./$(LIFECYCLE_TEST)
+	./$(SERIAL_WAIT_TEST)
 
 clean:
 	rm -rf $(BUILD_DIR)

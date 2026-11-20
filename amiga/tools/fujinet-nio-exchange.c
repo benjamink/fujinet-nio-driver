@@ -674,6 +674,7 @@ static void print_wire_peek(const uint8_t *buf, int file_list)
 static void print_matrix_usage(void)
 {
     fprintf(stderr,
+            "Usage: fujinet-nio-exchange --serial-request-test (isolated serial device)\n"
             "Usage: fujinet-nio-exchange --type clock|host-get|file-list "
             "--backend cold|warm [--installed-backend serial|native] "
             "[--baud 300..230400] "
@@ -1363,10 +1364,15 @@ static int run_isolation_suite(void)
     return RETURN_OK;
 }
 
+extern int fujinet_serial_request_probe(void);
+
 int main(int argc, char **argv)
 {
     /* Redirected logs must not sit in a full stdio buffer across a crash. */
     setvbuf(stdout, NULL, _IONBF, 0);
+
+    if (argc == 2 && strcmp(argv[1], "--serial-request-test") == 0)
+        return fujinet_serial_request_probe();
 
     if (argc >= 2) {
         if (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0) {

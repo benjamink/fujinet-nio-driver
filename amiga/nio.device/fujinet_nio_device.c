@@ -33,7 +33,11 @@
 
 #define DEVICE_NAME FUJINET_NIO_DEVICE_NAME
 #define DEVICE_VERSION 0
-#define DEVICE_REVISION 5
+#ifdef FUJINET_NIO_DIRECTORY_BACKEND
+#define DEVICE_REVISION 1
+#else
+#define DEVICE_REVISION 10
+#endif
 /* Headroom for a later serial/SLIP wait; 2A does not allocate serial buffers. */
 #define WORKER_STACK_SIZE 16384
 
@@ -105,7 +109,7 @@ static const char device_id[] =
     "$VER: fujinet-nio-native-test.device 0.1 (16.9.2026) native-test \xa9 2026 Mark Fisher\r\n";
 #else
 static const char device_id[] =
-    "$VER: " DEVICE_NAME " 0.9 (9.9.2026) \xa9 2026 Mark Fisher\r\n";
+    "$VER: " DEVICE_NAME " 0.10 (20.11.2026) \xa9 2026 Mark Fisher\r\n";
 #endif
 #endif
 
