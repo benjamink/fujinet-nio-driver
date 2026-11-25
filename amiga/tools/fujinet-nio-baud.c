@@ -43,8 +43,8 @@ int main(int argc, char **argv)
     struct IORequest open_request;
     struct FujiNetNIORequest req;
     UBYTE data[4];
-    ULONG baud;
-    char *end;
+    ULONG baud = 0;
+    char *end = NULL;
     int from_file = 0;
 
     if (argc > 2) {
@@ -53,16 +53,25 @@ int main(int argc, char **argv)
     }
     if (argc == 2 && has_from_prefix(argv[1])) {
         static char text[FUJINET_BOOT_CONFIG_MAX];
-        const char *name = argv[1] + 5;
+        const char *name = argv[1] + (sizeof("FROM=") - 1);
         BPTR fh;
         LONG got;
 
         /* A missing file is not an error: nothing was configured. */
         fh = Open((STRPTR)name, MODE_OLDFILE);
-        if (fh == 0) return RETURN_OK;
+        if (fh == 0) {
+            LONG err = IoErr();
+            if (err == ERROR_OBJECT_NOT_FOUND || err == ERROR_DEVICE_NOT_MOUNTED)
+                return RETURN_OK;
+            fprintf(stderr, "fujinet-nio-baud: cannot read %s\n", name);
+            return RETURN_WARN;
+        }
         got = Read(fh, text, FUJINET_BOOT_CONFIG_MAX);
         Close(fh);
-        if (got < 0) got = 0;
+        if (got < 0) {
+            fprintf(stderr, "fujinet-nio-baud: cannot read %s\n", name);
+            return RETURN_WARN;
+        }
         if (fujinet_boot_config_get_baud(text, (uint16_t)got, &baud) !=
             FUJINET_BOOT_CONFIG_OK) {
             fprintf(stderr, "fujinet-nio-baud: no valid BAUD= in %s\n", name);
@@ -71,7 +80,11 @@ int main(int argc, char **argv)
         from_file = 1;
     }
     port = CreatePort(NULL, 0);
-    if (port == NULL) return RETURN_FAIL;
+    if (port == NULL) {
+        if (!from_file) return RETURN_FAIL;
+        fprintf(stderr, "fujinet-nio-baud: cannot create port\n");
+        return RETURN_WARN;
+    }
     memset(&open_request, 0, sizeof(open_request));
     if (OpenDevice((CONST_STRPTR)FUJINET_NIO_DEVICE_NAME,
                    FUJINET_NIO_DEVICE_UNIT, &open_request, 0) != 0) {
